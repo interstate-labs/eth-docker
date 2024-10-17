@@ -3485,11 +3485,6 @@ cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 OWNER=$(ls -ld . | awk '{print $3}')
 OWNER_GROUP=$(id -gn "${OWNER}")
 
-if [ "${OWNER}" == "root" ]; then
-  echo "Please install ${__project_name} as a non-root user."
-  exit 0
-fi
-
 __command="$1"
 shift
 __params=$*

@@ -47,6 +47,7 @@ services:
       - ${HOST_IP:-}:${CL_P2P_PORT:-9000}:${CL_P2P_PORT:-9000}/tcp
       - ${HOST_IP:-}:${CL_P2P_PORT:-9000}:${CL_P2P_PORT:-9000}/udp
       - ${HOST_IP:-}:${CL_QUIC_PORT:-9001}:${CL_QUIC_PORT:-9001}/udp
+      - 5052:5052
     networks:
       default:
         aliases:
@@ -86,6 +87,10 @@ services:
       - "8008"
       - --suggested-fee-recipient
       - ${FEE_RECIPIENT}
+      - --builder
+      - http://mev-sidecar-api:9062
+      - --always-prefer-builder-payload
+      - --builder-fallback-disable-checks
     labels:
       - metrics.scrape=true
       - metrics.path=/metrics
@@ -143,6 +148,8 @@ services:
       - --unencrypted-http-transport
       - --suggested-fee-recipient
       - ${FEE_RECIPIENT}
+      - --builder-proposals
+      - --prefer-builder-proposals
     depends_on:
       - consensus
     labels:
