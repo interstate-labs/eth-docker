@@ -740,7 +740,7 @@ MetricsAPIPort: 15000
     sed -i'.original' '$a\
  ssv:
  ' ssv-config/config.yaml
-    if [ "${NETWORK}" = "holesky" ]; then
+    if [ "${NETWORK}" = "holesky" | "${NETWORK}" = "holesky(Interstate)" ]; then
       sed -i'.original' '$a\
   Network: holesky
 ' ssv-config/config.yaml
@@ -2761,6 +2761,7 @@ __query_network() {
   "Which network do you want to run on?" 14 65 6 \
   "holesky" "Holešovice Testnet" \
   "ephemery" "Ephemery Testnet" \
+  "holesky(Interstate)" "Holešovice Testnet with Interstate" \
   "mainnet" "Ethereum Mainnet" \
   "gnosis" "Gnosis Chain" \
   "sepolia" "Sepolia Testnet (permissioned validators)" \
@@ -2773,7 +2774,7 @@ __query_network() {
     "gnosis")
       echo "You chose to run on Gnosis Chain"
       ;;
-    "sepolia" | "holesky" )
+    "sepolia" | "holesky" | "holesky(Interstate)" )
       echo "You chose to run on ${NETWORK} testnet"
       ;;
     "custom" )
@@ -3130,7 +3131,7 @@ __query_checkpoint_beacon() {
       "sepolia")
         RAPID_SYNC_URL="https://sepolia.beaconstate.info"
         ;;
-      "holesky")
+      "holesky" | "holesky(Interstate)")
         RAPID_SYNC_URL="https://holesky.beaconstate.info"
         ;;
       "ephemery")
@@ -3253,6 +3254,9 @@ https://0xaa58208899c6105603b74396734a6263cc7d947f444f396a90f7b7d3e65d102aec7e5e
 https://0x821f2a65afb70e7f2e820a925a9b4c80a159620582c1766b1b09729fec178b11ea22abb3a51f07b288be815a1a2ff516@bloxroute.holesky.blxrbdn.com,\
 https://0xb1559beef7b5ba3127485bbbb090362d9f497ba64e177ee2c8e7db74746306efad687f2cf8574e38d70067d40ef136dc@relay-stag.ultrasound.money"
         ;;
+      "holesky(Interstate)")
+        MEV_RELAYS=http://0xa55c1285d84ba83a5ad26420cd5ad3091e49c55a813eee651cd467db38a8c8e63192f47955e9376f6b42f6d190571cb5@135.181.191.125:9062
+        ;;
       "mainnet")
         MEV_RELAYS="https://0xac6e77dfe25ecd6110b8e780608cce0dab71fdd5ebea22a16c0205200f2f8e2e3ad3b71d3499c54ad14d6c21b41a37ae@boost-relay.flashbots.net,\
 https://0x8b5d2e73e2a3a55c6c87b8b6eb92e0149a125c852751db1422fa951e42a09b82c142c3ea98d0d9930b056a3bc9896b8f@bloxroute.max-profit.blxrbdn.com,\
@@ -3360,7 +3364,7 @@ want to use MEV Boost?" 10 65); then
     done
     return 0
   fi
-  if (whiptail --title "MEV Boost" --yesno "Do you want to use MEV Boost?" 10 65) then
+  if (whiptail --title "MEV Boost" --yesno "Do you want to use Interstate MEV Boost?" 10 65) then
     MEV_BOOST="true"
     if [ "${__value}" = "true" ]; then
       __var="MEV_RELAYS"
@@ -3375,6 +3379,9 @@ want to use MEV Boost?" 10 65); then
 https://0xaa58208899c6105603b74396734a6263cc7d947f444f396a90f7b7d3e65d102aec7e5e5291b27e08d02c50a050825c2f@holesky.titanrelay.xyz,\
 https://0x821f2a65afb70e7f2e820a925a9b4c80a159620582c1766b1b09729fec178b11ea22abb3a51f07b288be815a1a2ff516@bloxroute.holesky.blxrbdn.com,\
 https://0xb1559beef7b5ba3127485bbbb090362d9f497ba64e177ee2c8e7db74746306efad687f2cf8574e38d70067d40ef136dc@relay-stag.ultrasound.money"
+          ;;
+        "holesky(Interstate)")
+          MEV_RELAYS=http://0xa55c1285d84ba83a5ad26420cd5ad3091e49c55a813eee651cd467db38a8c8e63192f47955e9376f6b42f6d190571cb5@135.181.191.125:9062
           ;;
         "mainnet")
           MEV_RELAYS=https://0xac6e77dfe25ecd6110b8e780608cce0dab71fdd5ebea22a16c0205200f2f8e2e3ad3b71d3499c54ad14d6c21b41a37ae@boost-relay.flashbots.net,\
@@ -3671,7 +3678,7 @@ config() {
       __query_validator_client
       ;;
     "ssv" | "lido_ssv")
-      if [ "${NETWORK}" = "holesky" ]; then
+      if [ "${NETWORK}" = "holesky" | "${NETWORK}" = "holesky(Interstate)" ]; then
         sed -i'.original' 's/  Network: .*/  Network: holesky/' ssv-config/config.yaml
       elif [ "${NETWORK}" = "mainnet" ]; then
         sed -i'.original' 's/  Network: .*/  Network: mainnet/' ssv-config/config.yaml
@@ -3873,7 +3880,7 @@ config() {
     COMPOSE_FILE="${COMPOSE_FILE}:lido-obol.yml"
   fi
   if { [ "${__deployment}" = "node" ] || [ "${__deployment}" = "rocket" ]; } \
-  && [ "${NETWORK}" = "holesky" ]; then
+  && [ "${NETWORK}" = "holesky" | "${NETWORK}" = "holesky(Interstate)" ]; then
     COMPOSE_FILE="${COMPOSE_FILE}:deposit-cli.yml"
   fi
   if [ "${__deployment}" = "lido_csm" ]; then
@@ -4193,11 +4200,6 @@ cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 # shellcheck disable=SC2012
 OWNER=$(ls -ld . | awk '{print $3}')
 OWNER_GROUP=$(id -gn "${OWNER}")
-
-if [ "${OWNER}" == "root" ]; then
-  echo "Please install ${__project_name} as a non-root user."
-  exit 0
-fi
 
 __command="$1"
 shift
