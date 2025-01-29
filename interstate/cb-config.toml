@@ -11,7 +11,7 @@ chain = "Holesky"
 [pbs]
 
 genesis_time_sec=1695902400   # The genesis time of the chain, the current value is the time of holesky.
-beacon_rpc="http://cl-1-lighthouse-geth:4000" # The beacon node url. You should change yours.
+beacon_rpc="http://consensus:5052" # The beacon node url. You should change yours.
 
 # Docker image to use for the PBS module.
 # OPTIONAL, DEFAULT: ghcr.io/commit-boost/pbs:latest
