@@ -1,45 +1,63 @@
 const fs = require('fs');
 const path = require('path');
 
-// Base directory where keys are stored
 const baseDir = './assigned_data/keys';
-const run = async () => {
 
+const run = async () => {
   let credentialsObj = {};
   let credentials = [];
-  let indecies = [];
+  let indices = [];
 
   try {
     // Get all directories inside the baseDir
     const pubkeys = fs.readdirSync(baseDir, { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory()) // Only get directories
-        .map(dirent => dirent.name); // Extract directory names
-    for(let i=0 ; i<pubkeys.length ; i++){
+      .filter(dirent => dirent.isDirectory()) // Only get directories
+      .map(dirent => dirent.name); // Extract directory names
+
+    for (let i = 0; i < pubkeys.length; i++) {
       const pubkey = pubkeys[i];
-      const validatorInfo = await await (fetch(`https://ethereum-holesky-beacon-api.publicnode.com/eth/v1/beacon/states/finalized/validators/${pubkey}`).then(res => res.json()))
-      credentialsObj[validatorInfo.data.index] = validatorInfo.data.validator.withdrawal_credentials;
-      indecies.push(validatorInfo.data.index)
+      try {
+        const response = await fetch(
+          `https://ethereum-holesky-beacon-api.publicnode.com/eth/v1/beacon/states/finalized/validators/${pubkey}`
+        );
+        const validatorInfo = await response.json();
+
+        if (validatorInfo.data) {
+          const index = Number(validatorInfo.data.index); // Convert index to number
+          credentialsObj[index] = validatorInfo.data.validator.withdrawal_credentials;
+          indices.push(index);
+        } else {
+          console.warn(`No data found for pubkey: ${pubkey}`);
+        }
+      } catch (fetchError) {
+        console.error(`Error fetching data for pubkey ${pubkey}:`, fetchError);
+      }
     }
   } catch (error) {
-      console.error("Error reading pubkeys:", error);
+    console.error("Error reading pubkeys:", error);
   }
-  indecies.sort((a,b) => a-b);
 
-  for(let i=0 ; i<indecies.length ; i++){
-    credentials.push(credentialsObj[indecies[i]])
+  // Convert indices to numbers (if not already) and sort numerically
+  indices = indices.sort((a, b) => a - b);
+
+  // Order credentials based on sorted indices
+  for (let i = 0; i < indices.length; i++) {
+    credentials.push(credentialsObj[indices[i]]);
   }
-  console.log(indecies)
+
+  console.log("Indices:", indices);
+
   try {
     const envFilePath = path.join(__dirname, 'secrets.env');
     let envContent = fs.readFileSync(envFilePath, 'utf8');
 
     envContent = envContent.replace(
-      /VALIDATOR_INDICES=".*?"/, 
-      `VALIDATOR_INDICES="${indecies.join(', ')}"`
+      /VALIDATOR_INDICES=".*?"/,
+      `VALIDATOR_INDICES="${indices.join(', ')}"`
     );
 
     envContent = envContent.replace(
-      /WITHDRAWALS_CREDENTIALS=".*?"/, 
+      /WITHDRAWALS_CREDENTIALS=".*?"/,
       `WITHDRAWALS_CREDENTIALS="${credentials.join(', ')}"`
     );
 
@@ -49,8 +67,6 @@ const run = async () => {
   } catch (error) {
     console.error("Error updating secrets.env:", error);
   }
+};
 
-}
-
-run()
-
+run();
